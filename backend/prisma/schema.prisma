@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         String   @id @default(uuid())
+  name       String?
+  email      String   @unique
+  phone      String?
+  password   String
+  role       Role     @default(CUSTOMER)
+  createdAt  DateTime @default(now())
+  driver     Driver?
+  restaurant Restaurant?
+  orders     Order[]  @relation("CustomerOrders")
+}
+
+model Driver {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  vehicleType   String?
+  status        DriverStatus @default(OFFLINE)
+  currentLat    Float?
+  currentLng    Float?
+  rating        Float? 
+  createdAt     DateTime @default(now())
+  orders        Order[]  @relation("DriverOrders")
+}
+
+model Restaurant {
+  id         String   @id @default(uuid())
+  ownerId    String
+  owner      User     @relation(fields: [ownerId], references: [id])
+  name       String
+  address    String
+  lat        Float?
+  lng        Float?
+  menuItems  MenuItem[]
+  createdAt  DateTime @default(now())
+  orders     Order[]
+}
+
+model MenuItem {
+  id           String   @id @default(uuid())
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  name         String
+  description  String?
+  price        Int
+  createdAt    DateTime @default(now())
+}
+
+model Order {
+  id           String   @id @default(uuid())
+  customerId   String
+  customer     User     @relation("CustomerOrders", fields: [customerId], references: [id])
+  restaurantId String
+  restaurant   Restaurant @relation(fields: [restaurantId], references: [id])
+  driverId     String?
+  driver       Driver?   @relation("DriverOrders", fields: [driverId], references: [id])
+  status       OrderStatus @default(PENDING)
+  totalAmount  Int
+  createdAt    DateTime @default(now())
+  items        OrderItem[]
+}
+
+model OrderItem {
+  id        String @id @default(uuid())
+  orderId   String
+  order     Order  @relation(fields: [orderId], references: [id])
+  name      String
+  price     Int
+  quantity  Int
+}
+
+enum Role {
+  CUSTOMER
+  DRIVER
+  RESTAURANT
+  ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  PREPARING
+  READY
+  ON_THE_WAY
+  DELIVERED
+  CANCELLED
+}
+
+enum DriverStatus {
+  OFFLINE
+  AVAILABLE
+  BUSY
+}
